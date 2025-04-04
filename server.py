@@ -14,8 +14,8 @@ app = Flask(__name__)
 CORS(app)
 app.secret_key = os.environ.get("SESSION_SECRET", "your-default-secret-key")
 
-# Initialize Socket.IO with CORS support
-socketio = SocketIO(app, cors_allowed_origins="*")
+# Initialize Socket.IO with CORS support and Eventlet
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # Initialize OpenAI client
 # The newest OpenAI model is "gpt-4o" which was released May 13, 2024.
@@ -87,6 +87,7 @@ def handle_disconnect():
 
 @socketio.on('translate_text')
 def handle_translation_request(data):
+    logger.debug(f"Received translation request via Socket.IO: {data}")
     conversation_id = data.get('conversation_id', None)
     
     try:
@@ -119,6 +120,7 @@ def handle_translation_request(data):
             'target_language': target_language,
             'conversation_id': conversation_id
         })
+        logger.debug(f"Emitted translation result: {translation}")
         
     except Exception as e:
         logger.error(f"Socket.IO translation error: {str(e)}")
