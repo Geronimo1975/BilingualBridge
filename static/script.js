@@ -93,10 +93,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Detect language and process text accordingly
     function detectLanguageAndProcess(text) {
-        // Simple language detection - can be improved with more sophisticated methods
-        const germanPattern = /[äöüßÄÖÜ]|(\b(und|der|die|das|ich|bin|ist|wie|du|für|von|mit|in|zu|nicht|den|dem|ein|eine|habe|wir|sie|es|auf)\b)/i;
+        // Enhanced German language detection with more comprehensive patterns
+        const germanSpecialChars = /[äöüßÄÖÜ]/;
+        const germanCommonWords = /\b(und|der|die|das|ich|bin|ist|wie|du|für|von|mit|in|zu|nicht|den|dem|ein|eine|habe|wir|sie|es|auf|aber|oder|wenn|dann|schon|auch|mein|dein|sein|ihr|unser|euer|was|wer|wo|warum|weil|dass|ja|nein|bitte|danke|gut|schlecht|heute|morgen|gestern|jetzt)\b/i;
         
-        const isGerman = germanPattern.test(text);
+        // Check for German special characters first
+        const hasGermanChars = germanSpecialChars.test(text);
+        
+        // Count German common words
+        const germanMatches = text.match(germanCommonWords);
+        const germanWordCount = germanMatches ? germanMatches.length : 0;
+        
+        // Decide language based on special characters or word count
+        const isGerman = hasGermanChars || germanWordCount > 0;
+        
+        console.log("Language detection:", text, 
+                    isGerman ? "German" : "English", 
+                    "German chars:", hasGermanChars, 
+                    "German word count:", germanWordCount);
+        
         const sourceLanguage = isGerman ? 'German' : 'English';
         const targetLanguage = isGerman ? 'English' : 'German';
         
