@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilingual Conversation</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>German-English Conversation</h1>
+        <div class="info-bar">
+            <p>Simulează o conversație bilingvă în timp real.</p>
+        </div>
+        
+        <div class="conversation-controls">
+            <button id="start-conversation" class="main-button">
+                <i class="fas fa-microphone"></i> Start Conversation
+            </button>
+            <button id="stop-conversation" class="main-button" disabled>
+                <i class="fas fa-stop"></i> Stop Conversation
+            </button>
+        </div>
+        
+        <div class="conversation-container">
+            <div class="conversation-column german-column">
+                <div class="column-header">
+                    <h2>Deutsch <span class="flag">🇩🇪</span></h2>
+                </div>
+                <div class="conversation-content" id="german-content">
+                    <!-- Conversația în germană va apărea aici -->
+                </div>
+            </div>
+            
+            <div class="conversation-column english-column">
+                <div class="column-header">
+                    <h2>English <span class="flag">🇬🇧</span></h2>
+                </div>
+                <div class="conversation-content" id="english-content">
+                    <!-- Conversația în engleză va apărea aici -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/script.js?v=2"></script>
+</body>
+</html>
