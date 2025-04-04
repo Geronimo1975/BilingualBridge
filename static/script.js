@@ -15,6 +15,60 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentLanguage = null;
     let conversationId = 0;
     let micPermissionGranted = false;
+    
+    // Socket.IO setup
+    let socket = null;
+    let isSocketConnected = false;
+    
+    // Initialize Socket.IO connection
+    function initializeSocket() {
+        // Connect to Socket.IO server
+        socket = io();
+        
+        // Connection event
+        socket.on('connect', function() {
+            console.log('Connected to Socket.IO server');
+            isSocketConnected = true;
+            hideError();
+        });
+        
+        // Disconnection event
+        socket.on('disconnect', function() {
+            console.log('Disconnected from Socket.IO server');
+            isSocketConnected = false;
+            showError('Connection to server lost. Please reload the page.');
+        });
+        
+        // Translation in progress event
+        socket.on('translation_in_progress', function(data) {
+            console.log('Translation in progress:', data);
+            // You could add a loading indicator here if needed
+        });
+        
+        // Translation result event
+        socket.on('translation_result', function(data) {
+            console.log('Translation result received:', data);
+            
+            const sourceLanguage = data.source_language;
+            const targetLanguage = data.target_language;
+            
+            // Add the translated text to the appropriate column
+            addMessageEntry(
+                targetLanguage === 'German' ? germanText : englishText, 
+                data.translation, 
+                'translated-text'
+            );
+        });
+        
+        // Translation error event
+        socket.on('translation_error', function(data) {
+            console.error('Translation error:', data.error);
+            showError('Error during translation: ' + data.error);
+        });
+    }
+    
+    // Initialize Socket.IO when the page loads
+    initializeSocket();
 
     // Check for browser compatibility
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -179,24 +233,35 @@ document.addEventListener('DOMContentLoaded', function() {
             'original-text'
         );
 
-        // Translate the text
-        translateText(text, sourceLanguage, targetLanguage)
-            .then(translation => {
-                // Add the translated text to the opposite column
-                addMessageEntry(
-                    isGerman ? englishText : germanText, 
-                    translation, 
-                    'translated-text'
-                );
-            })
-            .catch(error => {
-                console.error('Translation error:', error);
-                showError('Error during translation: ' + error.message);
+        // Translate the text using WebSockets if connected
+        if (isSocketConnected) {
+            // Use Socket.IO for real-time translation
+            socket.emit('translate_text', {
+                text: text,
+                source_language: sourceLanguage,
+                target_language: targetLanguage,
+                conversation_id: conversationId
             });
+        } else {
+            // Fallback to REST API if Socket.IO is not connected
+            translateTextREST(text, sourceLanguage, targetLanguage)
+                .then(translation => {
+                    // Add the translated text to the opposite column
+                    addMessageEntry(
+                        isGerman ? englishText : germanText, 
+                        translation, 
+                        'translated-text'
+                    );
+                })
+                .catch(error => {
+                    console.error('Translation error:', error);
+                    showError('Error during translation: ' + error.message);
+                });
+        }
     }
 
-    // Send text to server for translation
-    async function translateText(text, sourceLanguage, targetLanguage) {
+    // Send text to server for translation using REST API (fallback)
+    async function translateTextREST(text, sourceLanguage, targetLanguage) {
         try {
             const response = await fetch('/translate', {
                 method: 'POST',
