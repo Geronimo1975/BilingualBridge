@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let isRecording = false;
     let currentLanguage = null;
     let conversationId = 0;
+    let micPermissionGranted = false;
 
     // Check for browser compatibility
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -21,6 +22,9 @@ document.addEventListener('DOMContentLoaded', function() {
         startBtn.disabled = true;
         return;
     }
+
+    // Attempt to get microphone permissions right away
+    requestMicrophonePermission();
 
     // Initialize speech recognition
     function initSpeechRecognition() {
@@ -32,6 +36,10 @@ document.addEventListener('DOMContentLoaded', function() {
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.maxAlternatives = 1;
+        
+        // Default to German recognition to improve German detection
+        // We're setting this to German first since that was the problem area
+        recognition.lang = 'de-DE';
         
         // Set up event handlers
         recognition.onstart = function() {
@@ -66,7 +74,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (event.error === 'network') {
                 errorMessage = 'Network error occurred. Please check your internet connection.';
             } else if (event.error === 'not-allowed' || event.error === 'permission-denied') {
-                errorMessage = 'Microphone access denied. Please allow microphone permission in your browser.';
+                errorMessage = 'Microphone access denied. Please allow microphone permission and reload the page.';
+                startBtn.disabled = true;
+                // Try requesting permission again
+                requestMicrophonePermission();
             }
             
             showError(errorMessage);
@@ -74,6 +85,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Process speech results
         recognition.onresult = handleSpeechResult;
+    }
+
+    // Request microphone permission
+    function requestMicrophonePermission() {
+        hideError();
+        
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(function(stream) {
+                    // Permission granted, stop the tracks
+                    stream.getTracks().forEach(track => track.stop());
+                    console.log('Microphone permission granted');
+                    micPermissionGranted = true;
+                    startBtn.disabled = false;
+                    hideError();
+                })
+                .catch(function(err) {
+                    console.error('Microphone permission error:', err);
+                    showError('Microphone access is required. Please click "Allow" when prompted for microphone access.');
+                    startBtn.disabled = true;
+                    micPermissionGranted = false;
+                });
+        } else {
+            console.error('getUserMedia not supported');
+            showError('Your browser does not support microphone access. Please use a modern browser like Chrome or Edge.');
+            startBtn.disabled = true;
+        }
     }
 
     // Process speech recognition results
@@ -86,7 +124,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (transcript) {
                     // Detect language and process text
                     detectLanguageAndProcess(transcript);
+                    
+                    // Toggle recognition language for better results next time
+                    toggleRecognitionLanguage();
                 }
+            }
+        }
+    }
+
+    // Toggle recognition language between German and English
+    function toggleRecognitionLanguage() {
+        if (recognition) {
+            if (recognition.lang === 'de-DE') {
+                recognition.lang = 'en-US';
+                console.log('Switched recognition to English (en-US)');
+            } else {
+                recognition.lang = 'de-DE';
+                console.log('Switched recognition to German (de-DE)');
             }
         }
     }
@@ -212,6 +266,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Start conversation button
     startBtn.addEventListener('click', function() {
+        if (!micPermissionGranted) {
+            requestMicrophonePermission();
+            return;
+        }
+        
         try {
             initSpeechRecognition();
             recognition.start();
@@ -242,16 +301,4 @@ document.addEventListener('DOMContentLoaded', function() {
         englishText.innerHTML = '';
         hideError();
     });
-
-    // Check for microphone permissions
-    navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(function(stream) {
-            // Permission granted, stop the tracks
-            stream.getTracks().forEach(track => track.stop());
-        })
-        .catch(function(err) {
-            console.error('Microphone permission error:', err);
-            showError('Microphone access is required for this application. Please grant permission and reload the page.');
-            startBtn.disabled = true;
-        });
 });
